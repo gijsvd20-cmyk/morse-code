@@ -1,0 +1,204 @@
+
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morsecode Typen</title>
+
+<style>
+body {
+    background: #111827;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 40px;
+}
+
+h1 {
+    color: #38bdf8;
+}
+
+#knop {
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    border: none;
+    background: #2563eb;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    touch-action: none;
+}
+
+#knop:active {
+    background: #0ea5e9;
+    transform: scale(0.96);
+}
+
+#code {
+    font-size: 35px;
+    margin-top: 30px;
+    letter-spacing: 8px;
+    color: #facc15;
+}
+
+#tekst {
+    font-size: 30px;
+    margin-top: 20px;
+    min-height: 40px;
+    color: #4ade80;
+    overflow-wrap: anywhere;
+}
+
+button.extra {
+    margin: 10px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Morsecode Typen</h1>
+
+<p>Kort drukken = punt · Lang drukken = streep</p>
+
+<button id="knop">DRUK</button>
+
+<div id="code"></div>
+<div id="tekst"></div>
+
+<br>
+
+<button class="extra" onclick="letterSpatie()">Volgende letter</button>
+<button class="extra" onclick="woordSpatie()">Spatie</button>
+<button class="extra" onclick="wissen()">Wissen</button>
+
+<script>
+const morse = {
+    ".-": "A", "-...": "B", "-.-.": "C", "-..": "D",
+    ".": "E", "..-.": "F", "--.": "G", "....": "H",
+    "..": "I", ".---": "J", "-.-": "K", ".-..": "L",
+    "--": "M", "-.": "N", "---": "O", ".--.": "P",
+    "--.-": "Q", ".-.": "R", "...": "S", "-": "T",
+    "..-": "U", "...-": "V", ".--": "W", "-..-": "X",
+    "-.--": "Y", "--..": "Z",
+    "-----": "0", ".----": "1", "..---": "2",
+    "...--": "3", "....-": "4", ".....": "5",
+    "-....": "6", "--...": "7", "---..": "8",
+    "----.": "9"
+};
+
+let huidigeCode = "";
+let tekst = "";
+
+let audio;
+let oscillator;
+let gain;
+
+const knop = document.getElementById("knop");
+
+let startTijd = 0;
+let bezig = false;
+let timer;
+
+function geluidStart() {
+    if (!audio) {
+        audio = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    if (audio.state === "suspended") {
+        audio.resume();
+    }
+
+    oscillator = audio.createOscillator();
+    gain = audio.createGain();
+
+    oscillator.frequency.value = 650;
+    oscillator.type = "sine";
+
+    gain.gain.value = 0.15;
+
+    oscillator.connect(gain);
+    gain.connect(audio.destination);
+
+    oscillator.start();
+}
+
+function geluidStop() {
+    if (oscillator) {
+        oscillator.stop();
+        oscillator.disconnect();
+        oscillator = null;
+    }
+}
+
+knop.addEventListener("mousedown", (e) => {
+    if (e.button !== 0 || bezig) return;
+
+    e.preventDefault();
+    bezig = true;
+    startTijd = Date.now();
+
+    geluidStart();
+});
+
+window.addEventListener("mouseup", (e) => {
+    if (!bezig || e.button !== 0) return;
+
+    bezig = false;
+    geluidStop();
+
+    const duur = Date.now() - startTijd;
+
+    if (duur < 250) {
+        huidigeCode += ".";
+    } else {
+        huidigeCode += "-";
+    }
+
+    document.getElementById("code").textContent = huidigeCode;
+
+    clearTimeout(timer);
+    timer = setTimeout(letterSpatie, 1200);
+});
+
+function letterSpatie() {
+    clearTimeout(timer);
+
+    if (huidigeCode !== "") {
+        const letter = morse[huidigeCode] || "?";
+        tekst += letter;
+
+        document.getElementById("tekst").textContent = tekst;
+
+        huidigeCode = "";
+        document.getElementById("code").textContent = "";
+    }
+}
+
+function woordSpatie() {
+    letterSpatie();
+    tekst += " ";
+    document.getElementById("tekst").textContent = tekst;
+}
+
+function wissen() {
+    huidigeCode = "";
+    tekst = "";
+
+    clearTimeout(timer);
+
+    document.getElementById("code").textContent = "";
+    document.getElementById("tekst").textContent = "";
+}
+</script>
+
+</body>
+</html>
